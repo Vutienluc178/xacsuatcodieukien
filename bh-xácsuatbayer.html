@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô Hình Dạy Học Xác Suất Toàn Phần</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- KaTeX cho Toán học -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Hiệu ứng kéo lên từ từ (Slide up slowly) */
+        @keyframes slideUpFromBottom {
+            0% { transform: translateY(100%); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up-modal {
+            animation: slideUpFromBottom 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* KaTeX custom sizing fix inside flex containers */
+        .katex-display { margin: 0 !important; }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 overflow-hidden h-screen flex w-full">
+
+    <!-- BẢNG ĐIỀU KHIỂN - BÊN TRÁI -->
+    <div id="sidebar" class="bg-white shadow-xl z-20 flex flex-col h-full border-r border-slate-200 shrink-0 transition-all duration-500 ease-in-out overflow-hidden w-1/3 opacity-100">
+        <div class="p-4 flex-1 overflow-y-auto custom-scrollbar w-[33.33vw] min-w-[350px] flex flex-col">
+            
+            <!-- Header -->
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-slate-200 shrink-0">
+                <div class="bg-blue-600 p-1.5 rounded-lg text-white">
+                    <i data-lucide="calculator" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-800">Mô Hình Dạy Học</h1>
+                    <p class="text-xs text-slate-500">Xác Suất Toàn Phần</p>
+                </div>
+            </div>
+
+            <!-- Nút hiện tóm tắt (Khi đang ẩn) -->
+            <button id="btnShowSummary" class="hidden w-full bg-blue-50 hover:bg-blue-100 rounded-lg p-2 mb-4 border border-blue-200 flex items-center justify-between text-blue-800 transition-colors shadow-sm">
+                <div class="flex items-center gap-2 font-bold text-sm">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span>Hiển thị Tóm tắt kiến thức</span>
+                </div>
+                <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+
+            <!-- Khung Tóm tắt kiến thức -->
+            <div id="summaryPanel" class="bg-blue-50/70 rounded-lg p-3 mb-4 border border-blue-100 relative group transition-all block">
+                <div class="flex items-center justify-between mb-2 border-b border-blue-200/50 pb-1.5">
+                    <div class="flex items-center gap-2 text-blue-800 font-bold text-sm">
+                        <i data-lucide="book-open" class="w-4 h-4"></i>
+                        <h2>Tóm tắt kiến thức</h2>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button id="btnExpandSummary" class="p-1 hover:bg-blue-200/70 rounded text-blue-700 transition-colors" title="Mở toàn màn hình">
+                            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button id="btnHideSummary" class="p-1 hover:bg-blue-200/70 rounded text-blue-700 transition-colors" title="Thu gọn">
+                            <i data-lucide="eye-off" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="summaryContentClick" class="text-xs text-slate-700 space-y-2 px-1 cursor-pointer hover:bg-blue-100/50 p-1.5 -mx-1.5 rounded-md transition-colors" title="Click để phóng to Tóm tắt">
+                    <p>
+                        <strong>Hệ đầy đủ:</strong> Các biến cố <span class="math-inline" data-math="A_1, A_2, ..., A_n"></span> xung khắc từng đôi và:
+                        <span class="math-block" data-math="\sum_{i=1}^n P(A_i) = 1"></span>
+                    </p>
+                    <p class="pt-1.5 border-t border-blue-200/50">
+                        <strong>1. XS Toàn phần:</strong>
+                        <span class="math-block text-blue-800 font-bold" data-math="P(B) = \sum_{i=1}^n P(A_i) \cdot P(B|A_i)"></span>
+                    </p>
+                    <p class="pt-1.5 border-t border-blue-200/50">
+                        <strong>2. Định lý Bayes:</strong> Tính nguyên nhân sinh ra B
+                        <span class="math-block text-purple-700 font-bold" data-math="P(A_k|B) = \frac{P(A_k) \cdot P(B|A_k)}{P(B)}"></span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Cài đặt thông số -->
+            <div class="flex-1 space-y-3">
+                <div>
+                    <label class="block text-base font-bold text-slate-800 mb-1">
+                        Số lượng biến cố (Nhánh <span class="math-inline" data-math="A_i"></span>):
+                    </label>
+                    <select id="numEventsSelect" class="w-full border-2 border-slate-300 rounded-lg p-2 bg-slate-50 text-slate-800 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all text-lg font-bold shadow-sm">
+                        <option value="2" selected>2 nhánh</option>
+                        <option value="3">3 nhánh</option>
+                        <option value="4">4 nhánh</option>
+                        <option value="5">5 nhánh</option>
+                    </select>
+                </div>
+
+                <div class="space-y-3">
+                    <h3 class="font-bold text-slate-700 border-b-2 border-slate-100 pb-1.5 flex items-center justify-between text-sm">
+                        Thiết lập Xác suất:
+                        <span class="text-xs font-normal bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 flex items-center gap-1">
+                            Tổng <span class="math-inline" data-math="\Sigma = 1"></span>
+                        </span>
+                    </h3>
+                    
+                    <div class="mb-2 bg-purple-100/50 p-3 rounded-lg border-2 border-purple-300">
+                        <label class="block text-sm font-bold text-purple-900 mb-1.5">
+                            Chọn nhánh để tính Bayes <span class="math-inline" data-math="P(A_k|B)"></span>:
+                        </label>
+                        <select id="bayesTargetSelect" class="w-full border-2 border-purple-400 rounded-lg p-2 text-lg bg-white focus:border-purple-600 outline-none text-purple-900 font-bold shadow-sm">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+
+                    <!-- Cảnh báo lỗi -->
+                    <div id="errorAlert" class="hidden items-start gap-1.5 text-red-700 bg-red-100 p-2.5 rounded-lg text-sm font-bold border-2 border-red-300 shadow-sm">
+                        <i data-lucide="alert-circle" class="w-4 h-4 mt-0.5 shrink-0"></i>
+                        <span>Tổng các <span class="math-inline" data-math="P(A_i)"></span> phải bằng 1. (Hiện: <span id="sumErrorVal"></span>)</span>
+                    </div>
+
+                    <!-- Danh sách nhập liệu -->
+                    <div id="inputsContainer" class="space-y-3">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer Tác giả -->
+        <div class="w-[33.33vw] min-w-[350px] py-3 px-4 bg-slate-50 border-t border-slate-200 shrink-0 flex items-center justify-center">
+            <span class="text-[11.5px] font-bold text-blue-600 tracking-wide text-center opacity-90 hover:opacity-100 transition-opacity">
+                Tác giả: Thầy Vũ Tiến Lực - Trường THPT Nguyễn Hữu Cảnh - TP Hồ Chí Minh
+            </span>
+        </div>
+    </div>
+
+    <!-- MÀN HÌNH CHÍNH - BÊN PHẢI -->
+    <div id="mainContent" class="flex flex-col p-6 h-full overflow-hidden bg-slate-100 relative transition-all duration-500 ease-in-out w-2/3">
+        
+        <!-- Sơ đồ cây (Tree Diagram) -->
+        <div id="treeContainer" class="w-full h-full bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative flex items-center justify-center transition-all duration-700 ease-in-out z-10">
+            
+            <!-- Các Nút Trái -->
+            <div class="absolute top-4 left-4 flex items-center gap-3 z-30">
+                <button id="btnToggleSidebar" class="bg-white hover:bg-blue-50 text-slate-600 hover:text-blue-600 p-2.5 rounded-xl shadow-md border border-slate-200 transition-colors flex items-center justify-center transform hover:scale-105" title="Ẩn/Hiện bảng điều khiển">
+                    <i data-lucide="chevron-left" id="sidebarIcon" class="w-5 h-5"></i>
+                </button>
+                <div class="flex items-center gap-2 text-slate-600 bg-slate-50 px-3 py-1.5 rounded-full text-sm font-medium border border-slate-200 shadow-sm hidden sm:flex">
+                    <i data-lucide="info" class="w-4 h-4 text-blue-500"></i>
+                    Sơ đồ cây xác suất trực quan
+                </div>
+            </div>
+
+            <!-- Các Nút Phải (Đồng hồ & Fullscreen) -->
+            <div class="absolute top-4 right-4 flex items-center gap-3 z-30">
+                <div class="flex items-center gap-2 text-slate-700 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-xl shadow-md border border-slate-200 font-mono text-lg font-bold">
+                    <i data-lucide="clock" class="w-5 h-5 text-blue-600"></i>
+                    <span id="digitalClock">00:00:00</span>
+                </div>
+                <button id="btnFullscreen" class="bg-white hover:bg-blue-50 text-slate-600 hover:text-blue-600 p-2.5 rounded-xl shadow-md border border-slate-200 transition-colors flex items-center justify-center transform hover:scale-105" title="Toàn màn hình">
+                    <i data-lucide="maximize" id="fullscreenIcon" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- SVG Container -->
+            <svg id="svgTree" viewBox="0 0 800 500" class="w-full h-full max-h-full transition-transform duration-700 ease-in-out origin-center scale-100">
+                <defs>
+                    <marker id="arrowhead" markerWidth="5" markerHeight="5" refX="4.5" refY="2.5" orient="auto">
+                        <polygon points="0 0, 5 2.5, 0 5" fill="#94a3b8" />
+                    </marker>
+                    <marker id="arrowhead-main" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                        <polygon points="0 0, 6 3, 0 6" fill="#3b82f6" />
+                    </marker>
+                </defs>
+                <g id="svgBranches"></g>
+                <!-- Nút gốc vẽ sẵn để đè lên các nét -->
+                <circle cx="100" cy="250" r="28" fill="#f8fafc" stroke="#334155" stroke-width="4" />
+                <text x="100" y="256" text-anchor="middle" class="text-base font-bold fill-slate-800" font-family="system-ui">Gốc</text>
+            </svg>
+        </div>
+
+        <!-- Bảng Tính toán (Bottom Drawer) -->
+        <div id="calcMenu" class="absolute bottom-0 left-0 w-full h-[55%] bg-slate-900 text-white rounded-t-3xl shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.5)] border-t-4 border-blue-500 transition-transform duration-700 ease-in-out z-20 flex flex-col translate-y-full">
+            <div class="flex-1 p-6 pb-20 overflow-hidden relative flex flex-col">
+                <!-- BG Decoration -->
+                <div class="absolute top-0 right-0 p-4 opacity-5 transform translate-x-4 -translate-y-4 pointer-events-none">
+                    <i data-lucide="calculator" class="w-40 h-40"></i>
+                </div>
+
+                <h3 class="text-xl font-bold text-blue-300 mb-4 flex items-center gap-3 border-b border-slate-700 pb-3 shrink-0">
+                    <i data-lucide="calculator" class="w-6 h-6 text-blue-400"></i>
+                    Bảng Phân Tích & Tính Toán Xác Suất
+                </h3>
+                
+                <div id="calcContent" class="grid grid-cols-2 gap-6 relative z-10 flex-1 min-h-0">
+                    <!-- Cột 1: XS Toàn phần -->
+                    <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700 flex flex-col h-full">
+                        <h4 class="font-semibold text-blue-400 mb-4 text-base shrink-0 flex items-center gap-1">1. Xác Suất Toàn Phần <span class="math-inline" data-math="P(B)"></span></h4>
+                        
+                        <div class="flex-1 flex flex-col justify-center space-y-4 min-h-0">
+                            <div class="text-slate-300 overflow-x-auto text-lg text-center whitespace-nowrap scrollbar-hide py-1">
+                                <span id="mathTotalSym"></span>
+                            </div>
+                            <div class="text-slate-100 overflow-x-auto text-lg text-center whitespace-nowrap scrollbar-hide py-1">
+                                <span id="mathTotalVal"></span>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 mt-4 border-t border-slate-700/80 flex items-center justify-center shrink-0">
+                            <div class="bg-slate-900 px-4 py-3 rounded-xl border border-slate-700 shadow-inner w-full text-center">
+                                <span id="mathTotalRes" class="text-2xl font-bold text-green-400"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cột 2: XS Bayes -->
+                    <div class="bg-purple-900/20 p-5 rounded-2xl border border-purple-500/30 flex flex-col h-full">
+                        <h4 class="font-semibold text-purple-400 mb-4 text-base shrink-0 flex items-center gap-1">2. Định lý Bayes <span id="mathBayesTitle"></span></h4>
+                        
+                        <div class="flex-1 flex flex-col justify-center space-y-4 min-h-0">
+                            <div class="text-slate-300 overflow-x-auto text-lg text-center whitespace-nowrap scrollbar-hide py-1">
+                                <span id="mathBayesSym"></span>
+                            </div>
+                            <div class="text-slate-100 overflow-x-auto text-lg text-center whitespace-nowrap scrollbar-hide py-1">
+                                <span id="mathBayesVal"></span>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 mt-4 border-t border-purple-800/50 flex items-center justify-center shrink-0">
+                            <div class="bg-slate-900 px-4 py-3 rounded-xl border border-purple-700 shadow-inner w-full text-center">
+                                <span id="mathBayesRes" class="text-2xl font-bold text-purple-400"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Thông báo lỗi khi mở menu -->
+                <div id="calcErrorMsg" class="hidden flex-1 flex-col items-center justify-center text-red-400 font-medium z-10 relative">
+                    <i data-lucide="alert-circle" class="w-10 h-10 mb-4 opacity-80"></i>
+                    <p class="text-lg mb-2">Hệ thống tạm dừng tính toán.</p>
+                    <p class="text-sm text-slate-400 flex items-center gap-1">Vui lòng điều chỉnh lại xác suất <span class="math-inline" data-math="P(A_i)"></span> sao cho tổng bằng 1.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nút Toggle Menu Tính Toán -->
+        <button id="btnToggleCalc" class="absolute bottom-6 right-6 z-30 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 font-bold transition-transform transform hover:scale-105 border-2 border-blue-400/50">
+            <i data-lucide="calculator" class="w-5 h-5"></i>
+            <span id="textToggleCalc">Mở Menu Tính Toán Bayes</span>
+            <i data-lucide="chevron-up" id="iconToggleCalc" class="w-5 h-5"></i>
+        </button>
+    </div>
+
+    <!-- MODAL TÓM TẮT KIẾN THỨC -->
+    <div id="fullScreenModal" class="hidden fixed inset-0 z-[100] bg-slate-900/70 backdrop-blur-md items-center justify-center p-8 transition-opacity duration-300 opacity-0">
+        <div class="bg-white w-full max-w-7xl rounded-3xl shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] p-10 relative flex flex-col max-h-[95vh] transform transition-transform duration-500 translate-y-full" id="modalContentBox">
+            <button id="btnCloseModal" class="absolute top-6 right-6 p-4 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-600 rounded-full transition-colors focus:outline-none" title="Đóng (Esc)">
+                <i data-lucide="x" class="w-9 h-9"></i>
+            </button>
+            
+            <div class="flex items-center gap-4 text-blue-800 font-bold text-5xl mb-6 border-b-4 border-slate-100 pb-6 shrink-0">
+                <i data-lucide="book-open" class="w-12 h-12"></i>
+                <h2>Tóm Tắt Kiến Thức Trọng Tâm</h2>
+            </div>
+            
+            <div class="text-[32px] leading-tight text-slate-700 space-y-6 overflow-y-auto custom-scrollbar px-4 pb-6">
+                <div class="bg-slate-50 p-8 rounded-3xl border-2 border-slate-200 shadow-sm">
+                    <strong class="text-4xl text-slate-800 flex items-center gap-4 mb-4">
+                        <span class="bg-slate-200 w-12 h-12 rounded-full flex items-center justify-center text-2xl">✓</span>
+                        Hệ đầy đủ các biến cố
+                    </strong>
+                    <p class="mb-4">Một hệ các biến cố <span class="math-inline text-[36px] font-bold text-slate-800" data-math="A_1, A_2, ..., A_n"></span> được gọi là <strong>hệ đầy đủ</strong> nếu chúng xung khắc từng đôi một và tổng xác suất của chúng luôn bằng 1:</p>
+                    <div class="py-4 flex justify-center bg-white rounded-xl border border-slate-100"><span class="math-block text-5xl" data-math="\sum_{i=1}^n P(A_i) = 1"></span></div>
+                </div>
+
+                <div class="bg-blue-50 p-8 rounded-3xl border-2 border-blue-100 shadow-sm">
+                    <strong class="text-4xl text-blue-800 flex items-center gap-4 mb-4">
+                        <span class="bg-blue-200 w-12 h-12 rounded-full flex items-center justify-center text-2xl">1</span>
+                        Công thức Xác suất Toàn phần
+                    </strong>
+                    <p class="mb-4">Sử dụng để tính xác suất của biến cố <span class="math-inline" data-math="B"></span> khi nó có thể xảy ra đồng thời với một trong các biến cố <span class="math-inline" data-math="A_i"></span> của một hệ đầy đủ.</p>
+                    <div class="py-4 flex justify-center bg-white rounded-xl border border-blue-50"><span class="math-block text-blue-800 font-bold text-[44px]" data-math="P(B) = \sum_{i=1}^n P(A_i) \cdot P(B|A_i)"></span></div>
+                </div>
+
+                <div class="bg-purple-50 p-8 rounded-3xl border-2 border-purple-100 shadow-sm">
+                    <strong class="text-4xl text-purple-800 flex items-center gap-4 mb-4">
+                        <span class="bg-purple-200 w-12 h-12 rounded-full flex items-center justify-center text-2xl">2</span>
+                        Định lý Bayes (Xác suất Hậu nghiệm)
+                    </strong>
+                    <p class="mb-4">Sử dụng để tính ngược lại (đánh giá lại) xác suất của "nguyên nhân" <span class="math-inline" data-math="A_k"></span> khi <strong>đã biết</strong> "kết quả" <span class="math-inline" data-math="B"></span> đã xảy ra.</p>
+                    <div class="py-4 flex justify-center bg-white rounded-xl border border-purple-50"><span class="math-block text-purple-700 font-bold text-[44px]" data-math="P(A_k|B) = \frac{P(A_k) \cdot P(B|A_k)}{P(B)}"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Javascript Logic -->
+    <script>
+        // State
+        let state = {
+            numEvents: 2,
+            probsA: [0.6, 0.4],
+            probsB_givenA: [0.1, 0.05],
+            showCalc: false,
+            bayesTarget: 0,
+            isSidebarOpen: true,
+            isSummaryVisible: true
+        };
+
+        // DOM Elements
+        const DOM = {
+            numEventsSelect: document.getElementById('numEventsSelect'),
+            bayesTargetSelect: document.getElementById('bayesTargetSelect'),
+            inputsContainer: document.getElementById('inputsContainer'),
+            errorAlert: document.getElementById('errorAlert'),
+            sumErrorVal: document.getElementById('sumErrorVal'),
+            svgBranches: document.getElementById('svgBranches'),
+            
+            // Layout & Toggles
+            sidebar: document.getElementById('sidebar'),
+            mainContent: document.getElementById('mainContent'),
+            svgTree: document.getElementById('svgTree'),
+            treeContainer: document.getElementById('treeContainer'),
+            btnToggleSidebar: document.getElementById('btnToggleSidebar'),
+            sidebarIcon: document.getElementById('sidebarIcon'),
+
+            // Calculator Drawer
+            calcMenu: document.getElementById('calcMenu'),
+            btnToggleCalc: document.getElementById('btnToggleCalc'),
+            textToggleCalc: document.getElementById('textToggleCalc'),
+            iconToggleCalc: document.getElementById('iconToggleCalc'),
+            calcContent: document.getElementById('calcContent'),
+            calcErrorMsg: document.getElementById('calcErrorMsg'),
+
+            // Summary
+            btnShowSummary: document.getElementById('btnShowSummary'),
+            btnHideSummary: document.getElementById('btnHideSummary'),
+            summaryPanel: document.getElementById('summaryPanel'),
+            btnExpandSummary: document.getElementById('btnExpandSummary'),
+            summaryContentClick: document.getElementById('summaryContentClick'),
+            fullScreenModal: document.getElementById('fullScreenModal'),
+            modalContentBox: document.getElementById('modalContentBox'),
+            btnCloseModal: document.getElementById('btnCloseModal'),
+
+            // Fullscreen & Clock
+            btnFullscreen: document.getElementById('btnFullscreen'),
+            fullscreenIcon: document.getElementById('fullscreenIcon'),
+            digitalClock: document.getElementById('digitalClock'),
+
+            // Math elements inside drawer
+            mathTotalSym: document.getElementById('mathTotalSym'),
+            mathTotalVal: document.getElementById('mathTotalVal'),
+            mathTotalRes: document.getElementById('mathTotalRes'),
+            mathBayesTitle: document.getElementById('mathBayesTitle'),
+            mathBayesSym: document.getElementById('mathBayesSym'),
+            mathBayesVal: document.getElementById('mathBayesVal'),
+            mathBayesRes: document.getElementById('mathBayesRes')
+        };
+
+        // Initialize App
+        function init() {
+            // Wait for KaTeX to load
+            const checkKatex = setInterval(() => {
+                if (window.katex) {
+                    clearInterval(checkKatex);
+                    renderStaticMath();
+                    renderInputs();
+                    updateAll();
+                }
+            }, 100);
+
+            setupEventListeners();
+            startClock();
+        }
+
+        // Render Static Math with KaTeX
+        function renderStaticMath() {
+            document.querySelectorAll('.math-inline').forEach(el => {
+                katex.render(el.getAttribute('data-math'), el, { throwOnError: false, displayMode: false });
+            });
+            document.querySelectorAll('.math-block').forEach(el => {
+                katex.render(el.getAttribute('data-math'), el, { throwOnError: false, displayMode: true });
+            });
+        }
+
+        function renderDynamicMath(el, mathString, isBlock = false) {
+            if(window.katex && el) {
+                katex.render(mathString, el, { throwOnError: false, displayMode: isBlock });
+            }
+        }
+
+        // Clock
+        function startClock() {
+            setInterval(() => {
+                const now = new Date();
+                DOM.digitalClock.textContent = now.toLocaleTimeString('vi-VN', { hour12: false });
+            }, 1000);
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            DOM.numEventsSelect.addEventListener('change', (e) => {
+                const newNum = parseInt(e.target.value);
+                state.numEvents = newNum;
+                
+                // Auto distribute probabilities
+                let newProbsA = Array(newNum).fill(+(1/newNum).toFixed(2));
+                const sum = newProbsA.slice(0, -1).reduce((a, b) => a + b, 0);
+                newProbsA[newNum - 1] = +(1 - sum).toFixed(2);
+                
+                state.probsA = newProbsA;
+                state.probsB_givenA = Array(newNum).fill(0.1);
+                
+                if (state.bayesTarget >= newNum) state.bayesTarget = newNum - 1;
+                
+                renderInputs();
+                updateAll();
+            });
+
+            DOM.bayesTargetSelect.addEventListener('change', (e) => {
+                state.bayesTarget = parseInt(e.target.value);
+                updateAll();
+            });
+
+            // Layout Toggles
+            DOM.btnToggleSidebar.addEventListener('click', toggleSidebar);
+            DOM.btnToggleCalc.addEventListener('click', toggleCalculator);
+            
+            // Summary Toggles
+            DOM.btnShowSummary.addEventListener('click', () => { state.isSummaryVisible = true; updateSummaryVisibility(); });
+            DOM.btnHideSummary.addEventListener('click', () => { state.isSummaryVisible = false; updateSummaryVisibility(); });
+            DOM.btnExpandSummary.addEventListener('click', openModal);
+            DOM.summaryContentClick.addEventListener('click', openModal);
+            DOM.btnCloseModal.addEventListener('click', closeModal);
+            DOM.fullScreenModal.addEventListener('click', (e) => { if(e.target === DOM.fullScreenModal) closeModal(); });
+
+            // Fullscreen
+            DOM.btnFullscreen.addEventListener('click', toggleFullscreenAPI);
+            document.addEventListener('fullscreenchange', () => {
+                if(document.fullscreenElement) {
+                    DOM.fullscreenIcon.setAttribute('data-lucide', 'minimize');
+                } else {
+                    DOM.fullscreenIcon.setAttribute('data-lucide', 'maximize');
+                }
+                lucide.createIcons();
+            });
+        }
+
+        // Render Input Fields & Select Options
+        function renderInputs() {
+            // Update Bayes Select options
+            DOM.bayesTargetSelect.innerHTML = '';
+            for(let i = 0; i < state.numEvents; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.text = `Tính Xác suất của nhánh A${i+1}`;
+                if(i === state.bayesTarget) option.selected = true;
+                DOM.bayesTargetSelect.appendChild(option);
+            }
+
+            // Update Inputs container
+            DOM.inputsContainer.innerHTML = '';
+            for(let i = 0; i < state.numEvents; i++) {
+                const div = document.createElement('div');
+                div.className = "bg-white p-3 rounded-xl border-2 border-slate-200 space-y-3 relative overflow-hidden group hover:border-blue-400 transition-colors shadow-sm";
+                div.innerHTML = `
+                    <div class="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
+                    <div>
+                        <label class="flex justify-between items-center text-sm font-bold text-slate-800 mb-1.5">
+                            <span>XS nhánh <span class="math-dyn-inline" data-math="A_{${i + 1}}"></span></span>
+                            <span class="math-dyn-inline text-blue-700 text-base" data-math="P(A_{${i + 1}})"></span>
+                        </label>
+                        <input type="number" step="0.01" min="0" max="1" value="${state.probsA[i]}" data-type="probA" data-idx="${i}"
+                            class="w-full border-2 border-blue-400 bg-blue-50 text-blue-800 rounded-lg p-2 text-xl font-extrabold focus:border-blue-600 outline-none text-center shadow-inner transition-colors" />
+                    </div>
+                    <div>
+                        <label class="flex justify-between items-center text-sm font-bold text-slate-800 mb-1.5">
+                            <span>XS có B khi có <span class="math-dyn-inline" data-math="A_{${i + 1}}"></span></span>
+                            <span class="math-dyn-inline text-emerald-700 text-base" data-math="P(B|A_{${i + 1}})"></span>
+                        </label>
+                        <input type="number" step="0.01" min="0" max="1" value="${state.probsB_givenA[i]}" data-type="probB" data-idx="${i}"
+                            class="w-full border-2 border-emerald-400 bg-emerald-50 text-emerald-800 rounded-lg p-2 text-xl font-extrabold focus:border-emerald-600 outline-none text-center shadow-inner transition-colors" />
+                    </div>
+                `;
+                DOM.inputsContainer.appendChild(div);
+            }
+
+            // Bind events for dynamic inputs
+            DOM.inputsContainer.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-idx'));
+                    const val = parseFloat(e.target.value) || 0;
+                    if(e.target.getAttribute('data-type') === 'probA') {
+                        state.probsA[idx] = val;
+                    } else {
+                        state.probsB_givenA[idx] = val;
+                    }
+                    updateAll();
+                });
+            });
+
+            // Render dynamic math inside inputs
+            DOM.inputsContainer.querySelectorAll('.math-dyn-inline').forEach(el => {
+                renderDynamicMath(el, el.getAttribute('data-math'), false);
+            });
+        }
+
+        // Update all visual and mathematical parts
+        function updateAll() {
+            // Validation
+            const sumA = state.probsA.reduce((a, b) => a + b, 0);
+            const isValidSum = Math.abs(sumA - 1.0) < 0.01;
+
+            if(!isValidSum) {
+                DOM.errorAlert.classList.remove('hidden');
+                DOM.errorAlert.classList.add('flex');
+                DOM.sumErrorVal.textContent = sumA.toFixed(2);
+                DOM.calcContent.classList.add('hidden');
+                DOM.calcErrorMsg.classList.remove('hidden');
+                DOM.calcErrorMsg.classList.add('flex');
+            } else {
+                DOM.errorAlert.classList.add('hidden');
+                DOM.errorAlert.classList.remove('flex');
+                DOM.calcContent.classList.remove('hidden');
+                DOM.calcErrorMsg.classList.add('hidden');
+                DOM.calcErrorMsg.classList.remove('flex');
+            }
+
+            drawSVGTree();
+            updateCalculations(isValidSum);
+        }
+
+        // Draw SVG Tree Branches
+        function drawSVGTree() {
+            const numEvents = state.numEvents;
+            const svgWidth = 800;
+            const svgHeight = 500;
+            const rootX = 100;
+            const rootY = svgHeight / 2;
+            const layer1X = 400;
+            const layer2X = 700;
+            
+            const numScale = state.showCalc ? 2 : 1;
+            let branchesHTML = '';
+
+            for(let i = 0; i < numEvents; i++) {
+                const step = svgHeight / (numEvents + 1);
+                const aY = step * (i + 1);
+                const bY = aY - 35;
+                const notBy = aY + 35;
+                const probNotB = 1 - state.probsB_givenA[i];
+
+                branchesHTML += `
+                    <!-- Nhánh Gốc -> A_i -->
+                    <path d="M ${rootX} ${rootY} C ${rootX + 120} ${rootY}, ${layer1X - 120} ${aY}, ${layer1X} ${aY}" fill="none" stroke="#cbd5e1" stroke-width="5" marker-end="url(#arrowhead)"></path>
+                    <g style="transform: scale(${numScale}); transform-origin: ${(rootX + layer1X)/2}px ${(rootY + aY)/2}px" class="transition-transform duration-700 ease-in-out">
+                        <rect x="${(rootX + layer1X)/2 - 25}" y="${(rootY + aY)/2 - 14}" width="50" height="28" fill="white" rx="6" stroke="#e2e8f0" stroke-width="1"></rect>
+                        <text x="${(rootX + layer1X)/2}" y="${(rootY + aY)/2 + 5}" text-anchor="middle" class="text-sm font-bold fill-slate-700" font-family="system-ui">${state.probsA[i]}</text>
+                    </g>
+
+                    <!-- Nhánh A_i -> B -->
+                    <path d="M ${layer1X} ${aY} C ${layer1X + 100} ${aY}, ${layer2X - 100} ${bY}, ${layer2X} ${bY}" fill="none" stroke="#60a5fa" stroke-width="5" marker-end="url(#arrowhead-main)"></path>
+                    <g style="transform: scale(${numScale}); transform-origin: ${(layer1X + layer2X)/2}px ${(aY + bY)/2}px" class="transition-transform duration-700 ease-in-out">
+                        <rect x="${(layer1X + layer2X)/2 - 25}" y="${(aY + bY)/2 - 14}" width="50" height="28" fill="white" rx="6" stroke="#bfdbfe" stroke-width="1"></rect>
+                        <text x="${(layer1X + layer2X)/2}" y="${(aY + bY)/2 + 5}" text-anchor="middle" class="text-sm font-bold fill-blue-700" font-family="system-ui">${state.probsB_givenA[i]}</text>
+                    </g>
+
+                    <!-- Nhánh A_i -> Not B -->
+                    <path d="M ${layer1X} ${aY} C ${layer1X + 100} ${aY}, ${layer2X - 100} ${notBy}, ${layer2X} ${notBy}" fill="none" stroke="#e2e8f0" stroke-width="3" stroke-dasharray="6,4" marker-end="url(#arrowhead)"></path>
+                    <g style="transform: scale(${numScale}); transform-origin: ${(layer1X + layer2X)/2}px ${(aY + notBy)/2}px" class="transition-transform duration-700 ease-in-out">
+                        <rect x="${(layer1X + layer2X)/2 - 25}" y="${(aY + notBy)/2 - 14}" width="50" height="28" fill="white" rx="6" stroke="#f1f5f9" stroke-width="1"></rect>
+                        <text x="${(layer1X + layer2X)/2}" y="${(aY + notBy)/2 + 4}" text-anchor="middle" class="text-xs fill-slate-400 font-medium" font-family="system-ui">${probNotB.toFixed(2)}</text>
+                    </g>
+
+                    <!-- Node A_i -->
+                    <circle cx="${layer1X}" cy="${aY}" r="22" fill="#ffffff" stroke="#64748b" stroke-width="3" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));"></circle>
+                    <text x="${layer1X}" y="${aY + 5}" text-anchor="middle" class="text-base font-bold fill-slate-800" font-family="system-ui">A<tspan dy="5" font-size="10">${i+1}</tspan></text>
+
+                    <!-- Node B -->
+                    <circle cx="${layer2X}" cy="${bY}" r="22" fill="#eff6ff" stroke="#3b82f6" stroke-width="3"></circle>
+                    <text x="${layer2X}" y="${bY + 6}" text-anchor="middle" class="text-lg font-bold fill-blue-700" font-family="system-ui">B</text>
+
+                    <!-- Node Not B -->
+                    <circle cx="${layer2X}" cy="${notBy}" r="18" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"></circle>
+                    <text x="${layer2X}" y="${notBy + 5}" text-anchor="middle" class="text-sm font-bold fill-slate-400" font-family="system-ui"><tspan text-decoration="overline">B</tspan></text>
+                `;
+            }
+            DOM.svgBranches.innerHTML = branchesHTML;
+        }
+
+        // Calculate and Render Math formulas
+        function updateCalculations(isValidSum) {
+            if(!isValidSum) return;
+
+            const n = state.numEvents;
+            const t = state.bayesTarget;
+            const probsA = state.probsA;
+            const probsB = state.probsB_givenA;
+
+            const totalProb = probsA.reduce((sum, p, i) => sum + (p * probsB[i]), 0);
+            const bayesNum = probsA[t] * probsB[t];
+            const bayesResult = totalProb > 0 ? bayesNum / totalProb : 0;
+
+            // Total Prob Strings
+            let fSym = `P(B) = ` + Array.from({length: n}).map((_, i) => `P(A_{${i+1}}) \\cdot P(B|A_{${i+1}})`).join(' + ');
+            let fVal = `P(B) = ` + Array.from({length: n}).map((_, i) => `(${probsA[i]} \\cdot ${probsB[i]})`).join(' + ');
+            let fRes = `P(B) = ${totalProb.toFixed(4)}`;
+
+            // Bayes Strings
+            const k = t + 1;
+            let bSym = `\\displaystyle P(A_{${k}} | B) = \\frac{P(A_{${k}}) \\cdot P(B|A_{${k}})}{P(B)}`;
+            let bVal = `\\displaystyle P(A_{${k}} | B) = \\frac{${probsA[t]} \\cdot ${probsB[t]}}{${totalProb.toFixed(4)}}`;
+            let bRes = `P(A_{${k}} | B) = ${bayesResult.toFixed(4)}`;
+
+            // Render to DOM
+            renderDynamicMath(DOM.mathBayesTitle, `P(A_{${k}}|B)`, false);
+            renderDynamicMath(DOM.mathTotalSym, `\\displaystyle ${fSym}`, false);
+            renderDynamicMath(DOM.mathTotalVal, `\\displaystyle ${fVal}`, false);
+            renderDynamicMath(DOM.mathTotalRes, fRes, false);
+            renderDynamicMath(DOM.mathBayesSym, bSym, false);
+            renderDynamicMath(DOM.mathBayesVal, bVal, false);
+            renderDynamicMath(DOM.mathBayesRes, bRes, false);
+        }
+
+        // --- Interaction Handlers ---
+
+        function toggleSidebar() {
+            state.isSidebarOpen = !state.isSidebarOpen;
+            if(state.isSidebarOpen) {
+                DOM.sidebar.classList.remove('w-0', 'opacity-0', 'border-none');
+                DOM.sidebar.classList.add('w-1/3', 'opacity-100');
+                DOM.mainContent.classList.replace('w-full', 'w-2/3');
+                DOM.svgTree.classList.replace('scale-[1.15]', 'scale-100');
+                DOM.sidebarIcon.setAttribute('data-lucide', 'chevron-left');
+            } else {
+                DOM.sidebar.classList.add('w-0', 'opacity-0', 'border-none');
+                DOM.sidebar.classList.remove('w-1/3', 'opacity-100');
+                DOM.mainContent.classList.replace('w-2/3', 'w-full');
+                DOM.svgTree.classList.replace('scale-100', 'scale-[1.15]');
+                DOM.sidebarIcon.setAttribute('data-lucide', 'menu');
+            }
+            lucide.createIcons();
+        }
+
+        function toggleCalculator() {
+            state.showCalc = !state.showCalc;
+            if(state.showCalc) {
+                DOM.calcMenu.classList.replace('translate-y-full', 'translate-y-0');
+                DOM.treeContainer.classList.replace('h-full', 'h-[45%]');
+                DOM.textToggleCalc.textContent = "Đóng Bảng Tính";
+                DOM.iconToggleCalc.setAttribute('data-lucide', 'chevron-down');
+            } else {
+                DOM.calcMenu.classList.replace('translate-y-0', 'translate-y-full');
+                DOM.treeContainer.classList.replace('h-[45%]', 'h-full');
+                DOM.textToggleCalc.textContent = "Mở Menu Tính Toán Bayes";
+                DOM.iconToggleCalc.setAttribute('data-lucide', 'chevron-up');
+            }
+            lucide.createIcons();
+            drawSVGTree(); // redraw to apply 2x scaling
+        }
+
+        function updateSummaryVisibility() {
+            if(state.isSummaryVisible) {
+                DOM.btnShowSummary.classList.replace('flex', 'hidden');
+                DOM.summaryPanel.classList.replace('hidden', 'block');
+            } else {
+                DOM.btnShowSummary.classList.replace('hidden', 'flex');
+                DOM.summaryPanel.classList.replace('block', 'hidden');
+            }
+        }
+
+        function openModal() {
+            DOM.fullScreenModal.classList.replace('hidden', 'flex');
+            setTimeout(() => {
+                DOM.fullScreenModal.classList.replace('opacity-0', 'opacity-100');
+                DOM.modalContentBox.classList.add('animate-slide-up-modal');
+                DOM.modalContentBox.classList.remove('translate-y-full');
+            }, 10);
+        }
+
+        function closeModal() {
+            DOM.fullScreenModal.classList.replace('opacity-100', 'opacity-0');
+            DOM.modalContentBox.classList.remove('animate-slide-up-modal');
+            DOM.modalContentBox.classList.add('translate-y-full');
+            setTimeout(() => {
+                DOM.fullScreenModal.classList.replace('flex', 'hidden');
+            }, 300);
+        }
+
+        function toggleFullscreenAPI() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert(`Lỗi không thể mở toàn màn hình: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        // Boot
+        init();
+        lucide.createIcons();
+
+    </script>
+</body>
+</html>
